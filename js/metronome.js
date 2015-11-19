@@ -38,6 +38,59 @@ window.requestAnimFrame = (function(){
     };
 })();
 
+
+function loadSoundObj(obj, callback) {
+    var request = new XMLHttpRequest();
+    //request.open('GET', "sonidos/" + obj.src + "." + window.elektroWhale.audioFormat, true);
+    request.open('GET', "sonidos/" + obj.src , true);
+    request.responseType = 'arraybuffer';
+    request.onload = function() {
+        // request.response is encoded... so decode it now
+        window.elektroWhale.audioContext.decodeAudioData(request.response, function(buffer) {
+            obj.buffer = buffer;
+            }, function() {
+                message.call($wrapper, 'error', 'Error loading ' + obj.src);
+            });
+    };
+
+    request.send();
+}
+
+function loadSounds() {
+    // iterate over sounds obj
+    for (var i in window.elektroWhale.sonidos) {
+        if (window.elektroWhale.sonidos.hasOwnProperty(i)) {
+            // load sound
+            loadSoundObj(window.elektroWhale.sonidos[i]);
+        }
+    }
+}
+
+function playSound(name, start, vol) {
+// If vol is null, use the sound's default volume
+    if (vol === null) {
+        vol = window.elektroWhale.sonidos[name].volume;
+    }
+    // Lazy-load the master gain node
+    if (window.elektroWhale.masterGainNode === null) {
+        window.elektroWhale.masterGainNode = window.elektroWhale.audioContext.createGain();
+        window.elektroWhale.masterGainNode.connect( window.elektroWhale.audioContext.destination );
+    }
+    // Create a gainNode
+    var gainNode = window.elektroWhale.audioContext.createGain();
+    // Set gain values
+    window.elektroWhale.masterGainNode.gain.value = window.elektroWhale.masterVolume / 100;
+    gainNode.gain.value = vol;
+    // Create bufferSource
+    var bufferSource = window.elektroWhale.audioContext.createBufferSource();
+    bufferSource.buffer = window.elektroWhale.sonidos[name].buffer;
+    // Connect everything
+    bufferSource.connect(gainNode);
+    gainNode.connect(window.elektroWhale.masterGainNode);
+    // Play
+    bufferSource.start(start);
+}
+
 function nextNote() {
     // Advance current note and time by a 16th note...
     var secondsPerBeat = 60.0 / tempo;    // Notice this picks up the CURRENT 
@@ -52,11 +105,11 @@ function nextNote() {
 	
 	var posCosa = posCosas[0];
 	var step = sequence1.charAt(current16thNote);
-	console.log(sequence1 + ' '+step+" "+current16thNote); 
+	//console.log(sequence1 + ' '+step+" "+current16thNote); 
 	if(step == '1'){
 		//tenemos golpe
 		
-			console.log('golpe'); 
+		//	console.log('golpe'); 
 		posCosa.z = 1;	
 		var vectorPos = matrix[posCosa.x][posCosa.y];
 		if(vectorPos.x == 1){
@@ -103,22 +156,23 @@ function scheduleNote( beatNumber, time ) {
 	var posCosa = posCosas[0];
 	
 	if(posCosa.z > 0){
+		//aquí sí hacemos eschedule
 		posCosa.z = 0;	
-	    
-	    
 		osc.connect( audioContext.destination );
 	                // other 16th notes = high pitch
 		osc.frequency.value = 280.0;
 	    
-	    osc.start( time );
-	    osc.stop( time + noteLength );
+	   // osc.start( time );
+	   // osc.stop( time + noteLength );
+	    playSound('cajon_1',time,1);
 		
 	}else{
 		osc.connect( audioContext.destination );
 		osc.frequency.value = 820.0;
 	    
-	    osc.start( time );
-	    osc.stop( time + noteLength );
+	   // osc.start( time );
+	   // osc.stop( time + noteLength );
+	    playSound('cajon_3',time,1);
 	}
 
 }
@@ -270,6 +324,9 @@ function initMetronome(){
 	    		matrix[i][j] =   new THREE.Vector2( -1, 0 );
 	    }
     }
+    
+    window.elektroWhale.audioContext = new AudioContext();
+    loadSounds();
 	
 }
 
