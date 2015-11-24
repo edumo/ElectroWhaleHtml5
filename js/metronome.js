@@ -79,9 +79,10 @@ function playSound(name, start, vol) {
     // Create a gainNode
     var gainNode = window.elektroWhale.audioContext.createGain();
     // Set gain values
-    window.elektroWhale.masterGainNode.gain.value = window.elektroWhale.masterVolume / 100;
+    window.elektroWhale.masterGainNode.gain.value = 1;//window.elektroWhale.masterVolume / 100;
     gainNode.gain.value = vol;
     // Create bufferSource
+
     var bufferSource = window.elektroWhale.audioContext.createBufferSource();
     if(!window.elektroWhale.sonidos[name]){
     	alert('no hallo a '+name);
@@ -92,6 +93,7 @@ function playSound(name, start, vol) {
     gainNode.connect(window.elektroWhale.masterGainNode);
     // Play
     bufferSource.start(start);
+    
 }
 
 function mueveBichos(){

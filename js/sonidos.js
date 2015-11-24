@@ -59,6 +59,7 @@ window.elektroWhale = {
         }
 	},
 	masterGainNode: null,
-	audioContext: null
+	audioContext: null,
+	masterVolume: null
 
 }
