@@ -12,7 +12,7 @@ var scheduleAheadTime = 0.1;    // How far ahead to schedule audio (sec)
                             // This is calculated from lookahead, and overlaps 
                             // with next interval (in case the timer is late)
 var nextNoteTime = 0.0;     // when the next note is due.
-var noteResolution = 0;     // 0 == 16th, 1 == 8th, 2 == quarter note
+var noteResolution = 1;     // 0 == 16th, 1 == 8th, 2 == quarter note
 var noteLength = 0.05;      // length of "beep" (in seconds)
 var canvas,                 // the canvas element
     canvasContext;          // canvasContext is the canvas' context 2D
@@ -21,7 +21,7 @@ var notesInQueue = [];      // the notes that have been put into the web audio,
                             // and may or may not have played yet. {note, time}
 var timerWorker = null;     // The Web Worker used to fire timer messages
 
-var sequence1 = '001001010101';
+var sequences = ['001000110101','110111001010'];
 var posCosas = [];
 
 var matrix = [];
@@ -83,6 +83,9 @@ function playSound(name, start, vol) {
     gainNode.gain.value = vol;
     // Create bufferSource
     var bufferSource = window.elektroWhale.audioContext.createBufferSource();
+    if(!window.elektroWhale.sonidos[name]){
+    	alert('no hallo a '+name);
+    }
     bufferSource.buffer = window.elektroWhale.sonidos[name].buffer;
     // Connect everything
     bufferSource.connect(gainNode);
@@ -91,54 +94,60 @@ function playSound(name, start, vol) {
     bufferSource.start(start);
 }
 
+function mueveBichos(){
+	
+	for(var i = 0 ;i<posCosas.length;i++){
+		var posCosa = posCosas[i];
+		var step = sequences[i].charAt(current16thNote/2);
+		//console.log(sequence1 + ' '+step+" "+current16thNote); 
+		if(step == '1'){
+			//tenemos golpe
+			
+			//	console.log('golpe'); 
+			posCosa.z = 1;	
+			var vectorPos = matrix[posCosa.x][posCosa.y];
+			if(vectorPos.x == 1){
+				posCosa.y--;
+			}else if(vectorPos.x == -1){
+				posCosa.y++;
+			}else if(vectorPos.y == 1){
+				posCosa.x--;
+			}else if(vectorPos.y == -1){
+				posCosa.x++;
+			} 
+			
+			
+			if(posCosa.x >= TABLERO_SIZE){
+				posCosa.x = 0;	
+				
+			}
+			if(posCosa.x < 0){
+				posCosa.x = TABLERO_SIZE - 1;
+			}
+			if(posCosa.y >= TABLERO_SIZE){
+				posCosa.y = 0;	
+				
+			}
+			if(posCosa.y < 0){
+				posCosa.y =	TABLERO_SIZE -1;
+			}
+	
+		}
+	}
+}
+
 function nextNote() {
     // Advance current note and time by a 16th note...
-    var secondsPerBeat = 60.0 / tempo;    // Notice this picks up the CURRENT 
+    var secondsPerBeat = 60.0 / (tempo*2);    // Notice this picks up the CURRENT 
                                           // tempo value to calculate beat length.
     nextNoteTime += 0.25 * secondsPerBeat;    // Add beat length to last beat time
 
     current16thNote++;    // Advance the beat number, wrap to zero
-    if (current16thNote == NOTES_SIZE) {
+    console.log(current16thNote);
+    if (current16thNote == NOTES_SIZE * 2) {
         current16thNote = 0;
     }
     //avanzamos los bichos bichejos
-	
-	var posCosa = posCosas[0];
-	var step = sequence1.charAt(current16thNote);
-	//console.log(sequence1 + ' '+step+" "+current16thNote); 
-	if(step == '1'){
-		//tenemos golpe
-		
-		//	console.log('golpe'); 
-		posCosa.z = 1;	
-		var vectorPos = matrix[posCosa.x][posCosa.y];
-		if(vectorPos.x == 1){
-			posCosa.y--;
-		}else if(vectorPos.x == -1){
-			posCosa.y++;
-		}else if(vectorPos.y == 1){
-			posCosa.x--;
-		}else if(vectorPos.y == -1){
-			posCosa.x++;
-		} 
-		
-		
-		if(posCosa.x >= TABLERO_SIZE){
-			posCosa.x = 0;	
-			
-		}
-		if(posCosa.x < 0){
-			posCosa.x = TABLERO_SIZE - 1;
-		}
-		if(posCosa.y >= TABLERO_SIZE){
-			posCosa.y = 0;	
-			
-		}
-		if(posCosa.y < 0){
-			posCosa.y =	TABLERO_SIZE -1;
-		}
-
-	}
 }
 
 function scheduleNote( beatNumber, time ) {
@@ -146,35 +155,70 @@ function scheduleNote( beatNumber, time ) {
     notesInQueue.push( { note: beatNumber, time: time } );
 
     if ( (noteResolution==1) && (beatNumber%2))
+    {
+    	//aquí tenemos los semitiempos
+    	playSound('palmas_1',time,1);
         return; // we're not playing non-8th 16th notes
+    }
     if ( (noteResolution==2) && (beatNumber%4))
         return; // we're not playing non-quarter 8th notes
-
+        
+	mueveBichos();
     // create an oscillator
-    
-	var osc = audioContext.createOscillator();
-	var posCosa = posCosas[0];
-	
-	if(posCosa.z > 0){
-		//aquí sí hacemos eschedule
-		posCosa.z = 0;	
-		osc.connect( audioContext.destination );
-	                // other 16th notes = high pitch
-		osc.frequency.value = 280.0;
-	    
-	   // osc.start( time );
-	   // osc.stop( time + noteLength );
-	    playSound('cajon_1',time,1);
+    for(var i = 0 ;i<posCosas.length;i++){
+		var posCosa = posCosas[i];
 		
-	}else{
-		osc.connect( audioContext.destination );
-		osc.frequency.value = 820.0;
-	    
-	   // osc.start( time );
-	   // osc.stop( time + noteLength );
-	    playSound('cajon_3',time,1);
-	}
-
+		if(posCosa.z > 0){
+			//aquí sí hacemos eschedule
+			posCosa.z = 0;	
+			//TODO de momento selección de sonidos hackeada, hace falta
+			//una estructura de datos para almacenar las distitnas dimensiones del talbero
+			// para cada uno de los reproductores
+		    if(i === 0){
+		    	//playSound('cajon_2',time,1);
+		    
+		    	if(posCosa.y < 1)
+		    			playSound('cajon_2_5',time,1);
+		    	else if(posCosa.y < 2)
+		    			playSound('cajon_2',time,1);
+		    	else if(posCosa.y < 3)
+		    			playSound('cajon_2_2',time,1);
+		    	else if(posCosa.y < 4)
+		    		playSound('cajon_2',time,1);
+		    	else if(posCosa.y < 4)
+		    		playSound('cajon_2',time,1);
+		    	else{
+		    		playSound('cajon_2',time,1);
+		    	} 
+		    }else{
+		    	
+		    //	playSound('cajon_redoble_1',time,1);
+		    	//playSound('cajon_3',time,1);
+		    	if(posCosa.y < 1)
+		    		playSound('palmas_1',time,1);
+		    	else if(posCosa.y < 2)
+		    		playSound('palmas_2',time,1);
+		    	else if(posCosa.y < 3)
+		    		playSound('palmas_3',time,1);
+		    	else if(posCosa.y < 4)
+		    		playSound('palmas_4',time,1);
+		    	else if(posCosa.y < 4)
+		    		playSound('palmas_5',time,1);
+		    	else{
+		    		playSound('palmas_6',time,1);
+		    		playSound('cajon_redoble_1',time,1);
+		    	} 
+		    	
+		    //	else
+		    	//playSound('cajon_2_6',time,1);
+		    }
+			
+		}else{
+			// ya no reproducimos en todos solo en el que me toca
+		   // playSound('cajon_3',time,1);
+		  //	playSound('cajon_3',time,1);
+		}
+    }
 }
 
 function scheduler() {
@@ -311,6 +355,7 @@ function initMetronome(){
     timerWorker.postMessage({"interval":lookahead});
     
     posCosas[0] = new THREE.Vector2( 0, 0 );
+    posCosas[1] = new THREE.Vector2( 0, TABLERO_SIZE - 1 );
     
     //init new stuff
     for(var i=0; i<NOTES_SIZE; i++) {
@@ -324,6 +369,7 @@ function initMetronome(){
 	    		matrix[i][j] =   new THREE.Vector2( -1, 0 );
 	    }
     }
+    
     
     window.elektroWhale.audioContext = new AudioContext();
     loadSounds();

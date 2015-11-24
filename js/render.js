@@ -22,7 +22,7 @@
 			var sunColor = 0xffee00;
 			
 			var raycaster, mouse;
-			var SOUNDERS_SIZE = 1;
+			var SOUNDERS_SIZE = 2;
 			var soundersMesh = [];
 
 		//	init();
